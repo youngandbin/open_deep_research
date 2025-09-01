@@ -70,6 +70,11 @@ async def clarify_with_user(state: AgentState, config: RunnableConfig) -> Comman
     Returns:
         Command to either end with a clarifying question or proceed to research brief
     """
+    # Step 0: Notify progress callback about clarification phase
+    progress_callback = config.get("configurable", {}).get("progress_callback")
+    if progress_callback:
+        progress_callback(phase="clarification")
+    
     # Step 1: Check if clarification is enabled in configuration
     configurable = Configuration.from_runnable_config(config)
     if not configurable.allow_clarification:
@@ -129,6 +134,11 @@ async def write_research_brief(state: AgentState, config: RunnableConfig) -> Com
     Returns:
         Command to proceed to research supervisor with initialized context
     """
+    # Step 0: Notify progress callback about planning phase
+    progress_callback = config.get("configurable", {}).get("progress_callback")
+    if progress_callback:
+        progress_callback(phase="planning")
+    
     # Step 1: Set up the research model for structured output
     configurable = Configuration.from_runnable_config(config)
     research_model_config = {
@@ -189,8 +199,16 @@ async def supervisor(state: SupervisorState, config: RunnableConfig) -> Command[
     Returns:
         Command to proceed to supervisor_tools for tool execution
     """
-    # Step 1: Configure the supervisor model with available tools
+    # Step 0: Notify progress callback about research phase and iteration
+    progress_callback = config.get("configurable", {}).get("progress_callback")
     configurable = Configuration.from_runnable_config(config)
+    current_iteration = state.get("research_iterations", 0) + 1
+    # Ensure iteration doesn't exceed max limit for progress reporting
+    reported_iteration = min(current_iteration, configurable.max_researcher_iterations)
+    if progress_callback:
+        progress_callback(phase="research", research_iteration=reported_iteration)
+    
+    # Step 1: Configure the supervisor model with available tools
     research_model_config = {
         "model": configurable.research_model,
         "max_tokens": configurable.research_model_max_tokens,
@@ -617,6 +635,11 @@ async def final_report_generation(state: AgentState, config: RunnableConfig):
     Returns:
         Dictionary containing the final report and cleared state
     """
+    # Step 0: Notify progress callback about report generation phase
+    progress_callback = config.get("configurable", {}).get("progress_callback")
+    if progress_callback:
+        progress_callback(phase="report_generation")
+    
     # Step 1: Extract research findings and prepare state cleanup
     notes = state.get("notes", [])
     cleared_state = {"notes": {"type": "override", "value": []}}

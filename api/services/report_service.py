@@ -119,10 +119,15 @@ class ReportService:
             if log_callback:
                 log_callback("Starting report generation process")
 
+            # Prepare config with progress callback
+            deep_researcher_config = config.model_dump()
+            if progress_callback:
+                deep_researcher_config["progress_callback"] = progress_callback
+            
             # Run the deep researcher (synchronous)
             result = deep_researcher.invoke({
                 "messages": [{"role": "user", "content": message}]
-            }, config={"configurable": config.model_dump()})
+            }, config={"configurable": deep_researcher_config})
 
             if log_callback:
                 log_callback("Report generation completed")
@@ -178,10 +183,15 @@ class ReportService:
             if log_callback:
                 log_callback("Starting report generation process")
 
+            # Prepare config with progress callback
+            deep_researcher_config = config.model_dump()
+            if progress_callback:
+                deep_researcher_config["progress_callback"] = progress_callback
+            
             # Run the deep researcher asynchronously
             result = await deep_researcher.ainvoke({
                 "messages": [{"role": "user", "content": message}]
-            }, config={"configurable": config.model_dump()})
+            }, config={"configurable": deep_researcher_config})
             if log_callback:
                 log_callback("Report generation completed")
 
